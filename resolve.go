@@ -415,8 +415,8 @@ func matchPackagesInFS(pattern string) []string {
 	// Could be smarter but this one optimization
 	// is enough for now, since ... is usually at the
 	// end of a path.
-	i := strings.Index(pattern, "...")
-	dir, _ := path.Split(pattern[:i])
+	before, _, _ := strings.Cut(pattern, "...")
+	dir, _ := path.Split(before)
 
 	// pattern begins with ./ or ../.
 	// path.Clean will discard the ./ but not the ../.
