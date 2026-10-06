@@ -1,6 +1,6 @@
 package foo
 
-import "github.com/mgechev/dots/fixtures/pkg/foo/bar"
+import "github.com/revive-lint/dots/fixtures/pkg/foo/bar"
 
 func foo() bar.Bar {
 	var b bar.Bar

@@ -71,7 +71,7 @@ func TestResolveTests(t *testing.T) {
 }
 
 func TestPackageResolve(t *testing.T) {
-	result, err := Resolve([]string{"github.com/mgechev/dots"}, []string{"resolve_test.go"})
+	result, err := Resolve([]string{"github.com/revive-lint/dots"}, []string{"resolve_test.go"})
 
 	files := []string{
 		"resolve.go",
@@ -108,7 +108,7 @@ func TestSkipWildcard(t *testing.T) {
 }
 
 func TestPackageWildcard(t *testing.T) {
-	result, err := Resolve([]string{"github.com/mgechev/dots/fixtures/pkg/foo/...", "github.com/mgechev/dots/fixtures/pkg/baz"}, []string{})
+	result, err := Resolve([]string{"github.com/revive-lint/dots/fixtures/pkg/foo/...", "github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{})
 	files := []string{
 		"baz1.go",
 		"baz2.go",
@@ -132,7 +132,7 @@ func TestPackageWildcard(t *testing.T) {
 }
 
 func TestPackageWildcardWithSkip(t *testing.T) {
-	result, err := Resolve([]string{"github.com/mgechev/dots/fixtures/pkg/baz"}, []string{"github.com/mgechev/dots/fixtures/pkg/foo/..."})
+	result, err := Resolve([]string{"github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{"github.com/revive-lint/dots/fixtures/pkg/foo/..."})
 
 	files := []string{
 		"baz1.go",
@@ -165,7 +165,7 @@ func TestComplainForMissingDirectories(t *testing.T) {
 }
 
 func TestComplainForMissingPackages(t *testing.T) {
-	_, err := Resolve([]string{"github.com/mgechev/bazbaz"}, []string{})
+	_, err := Resolve([]string{"github.com/revive-lint/bazbaz"}, []string{})
 
 	if err == nil {
 		t.Error("Should get an error")
@@ -173,7 +173,7 @@ func TestComplainForMissingPackages(t *testing.T) {
 }
 
 func TestResolvePackages(t *testing.T) {
-	result, err := ResolvePackages([]string{"github.com/mgechev/dots/fixtures/pkg/foo/...", "github.com/mgechev/dots/fixtures/pkg/baz"}, []string{})
+	result, err := ResolvePackages([]string{"github.com/revive-lint/dots/fixtures/pkg/foo/...", "github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}

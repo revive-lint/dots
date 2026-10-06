@@ -1,3 +1,3 @@
-module github.com/mgechev/dots
+module github.com/revive-lint/dots
 
 go 1.23.0
