@@ -1,3 +1,4 @@
+// Package dots resolves Go file paths from patterns that may contain the "..." placeholder.
 package dots
 
 import (
@@ -7,13 +8,12 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 )
 
 var (
 	buildContext = build.Default
-	goroot       = filepath.Clean(runtime.GOROOT())
+	goroot       = filepath.Clean(buildContext.GOROOT)
 	gorootSrc    = filepath.Join(goroot, "src")
 )
 
@@ -29,11 +29,7 @@ func flatten(arr [][]string) []string {
 // The final result is the set of all files from the selected directories subtracted with
 // the files in the skip slice.
 func Resolve(includePatterns, skipPatterns []string) ([]string, error) {
-	skip, err := resolvePatternsIgnoringErrors(skipPatterns)
-	filter := newPathFilter(flatten(skip))
-	if err != nil {
-		return nil, err
-	}
+	filter := newPathFilter(flatten(resolvePatternsIgnoringErrors(skipPatterns)))
 
 	pathSet := map[string]bool{}
 	includePackages, err := resolvePatterns(includePatterns)
@@ -49,7 +45,7 @@ func Resolve(includePatterns, skipPatterns []string) ([]string, error) {
 			result = append(result, i)
 		}
 	}
-	return result, err
+	return result, nil
 }
 
 // ResolvePackages accepts a slice of paths with optional "..." placeholder and a slice with paths to be skipped.
@@ -57,11 +53,7 @@ func Resolve(includePatterns, skipPatterns []string) ([]string, error) {
 // the files in the skip slice. The difference between `Resolve` and `ResolvePackages`
 // is that `ResolvePackages` preserves the package structure in the nested slices.
 func ResolvePackages(includePatterns, skipPatterns []string) ([][]string, error) {
-	skip, err := resolvePatternsIgnoringErrors(skipPatterns)
-	filter := newPathFilter(flatten(skip))
-	if err != nil {
-		return nil, err
-	}
+	filter := newPathFilter(flatten(resolvePatternsIgnoringErrors(skipPatterns)))
 
 	pathSet := map[string]bool{}
 	include, err := resolvePatterns(includePatterns)
@@ -80,7 +72,7 @@ func ResolvePackages(includePatterns, skipPatterns []string) ([][]string, error)
 		}
 		result = append(result, packageFiles)
 	}
-	return result, err
+	return result, nil
 }
 
 func isDir(filename string) bool {
@@ -137,7 +129,7 @@ func resolvePatterns(patterns []string) ([][]string, error) {
 	return files, nil
 }
 
-func resolvePatternsIgnoringErrors(patterns []string) ([][]string, error) {
+func resolvePatternsIgnoringErrors(patterns []string) [][]string {
 	var files [][]string
 	for _, pattern := range patterns {
 		f, err := resolvePattern(pattern)
@@ -146,7 +138,7 @@ func resolvePatternsIgnoringErrors(patterns []string) ([][]string, error) {
 		}
 		files = append(files, f...)
 	}
-	return files, nil
+	return files
 }
 
 func resolvePattern(pattern string) ([][]string, error) {
@@ -156,18 +148,17 @@ func resolvePattern(pattern string) ([][]string, error) {
 	var dirsRun, filesRun, pkgsRun int
 	var matches []string
 
-	if strings.HasSuffix(pattern, "/...") && isDir(pattern[:len(pattern)-len("/...")]) {
+	switch {
+	case strings.HasSuffix(pattern, "/...") && isDir(pattern[:len(pattern)-len("/...")]):
 		dirsRun = 1
-		for _, dirname := range matchPackagesInFS(pattern) {
-			matches = append(matches, dirname)
-		}
-	} else if isDir(pattern) {
+		matches = append(matches, matchPackagesInFS(pattern)...)
+	case isDir(pattern):
 		dirsRun = 1
 		matches = append(matches, pattern)
-	} else if exists(pattern) {
+	case exists(pattern):
 		filesRun = 1
 		matches = append(matches, pattern)
-	} else {
+	default:
 		pkgsRun = 1
 		matches = append(matches, pattern)
 	}
@@ -223,7 +214,7 @@ func importPathsNoDotExpansion(args []string) []string {
 		// as a courtesy to Windows developers, rewrite \ to /
 		// in command-line arguments.  Handles .\... and so on.
 		if filepath.Separator == '\\' {
-			a = strings.Replace(a, `\`, `/`, -1)
+			a = strings.ReplaceAll(a, `\`, `/`)
 		}
 
 		// Put argument in canonical form, but preserve leading ./.
@@ -268,7 +259,7 @@ func importPaths(args []string) []string {
 // is no other special syntax.
 func matchPattern(pattern string) func(name string) bool {
 	re := regexp.QuoteMeta(pattern)
-	re = strings.Replace(re, `\.\.\.`, `.*`, -1)
+	re = strings.ReplaceAll(re, `\.\.\.`, `.*`)
 	// Special case: foo/... matches foo too.
 	if strings.HasSuffix(re, `/.*`) {
 		re = re[:len(re)-len(`/.*`)] + `(/.*)?`
@@ -283,8 +274,6 @@ func matchPattern(pattern string) func(name string) bool {
 // elements in prefix.
 func hasPathPrefix(s, prefix string) bool {
 	switch {
-	default:
-		return false
 	case len(s) == len(prefix):
 		return s == prefix
 	case len(s) > len(prefix):
@@ -292,6 +281,8 @@ func hasPathPrefix(s, prefix string) bool {
 			return strings.HasPrefix(s, prefix)
 		}
 		return s[len(prefix)] == '/' && s[:len(prefix)] == prefix
+	default:
+		return false
 	}
 }
 
@@ -327,8 +318,8 @@ func matchPackages(pattern string) []string {
 	var pkgs []string
 
 	// Commands
-	cmd := filepath.Join(goroot, "src/cmd") + string(filepath.Separator)
-	filepath.Walk(cmd, func(path string, fi os.FileInfo, err error) error {
+	cmd := filepath.Join(goroot, "src", "cmd") + string(filepath.Separator)
+	_ = filepath.Walk(cmd, func(path string, fi os.FileInfo, err error) error {
 		if err != nil || !fi.IsDir() || path == cmd {
 			return nil
 		}
@@ -365,13 +356,13 @@ func matchPackages(pattern string) []string {
 		if (pattern == "std" || pattern == "cmd") && src != gorootSrc {
 			continue
 		}
-		src = filepath.Clean(src) + string(filepath.Separator)
-		root := src
+		dir := filepath.Clean(src) + string(filepath.Separator)
+		root := dir
 		if pattern == "cmd" {
 			root += "cmd" + string(filepath.Separator)
 		}
-		filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
-			if err != nil || !fi.IsDir() || path == src {
+		_ = filepath.Walk(root, func(path string, fi os.FileInfo, err error) error {
+			if err != nil || !fi.IsDir() || path == dir {
 				return nil
 			}
 
@@ -381,7 +372,7 @@ func matchPackages(pattern string) []string {
 				return filepath.SkipDir
 			}
 
-			name := filepath.ToSlash(path[len(src):])
+			name := filepath.ToSlash(path[len(dir):])
 			if pattern == "std" && (strings.Contains(name, ".") || name == "cmd") {
 				// The name "std" is only the standard library.
 				// If the name is cmd, it's the root of the command tree.
@@ -398,10 +389,8 @@ func matchPackages(pattern string) []string {
 				return nil
 			}
 			_, err = buildContext.ImportDir(path, 0)
-			if err != nil {
-				if _, noGo := err.(*build.NoGoError); noGo {
-					return nil
-				}
+			if _, noGo := err.(*build.NoGoError); noGo {
+				return nil
 			}
 			pkgs = append(pkgs, name)
 			return nil
@@ -429,7 +418,7 @@ func matchPackagesInFS(pattern string) []string {
 	match := matchPattern(pattern)
 
 	var pkgs []string
-	filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
+	_ = filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil || !fi.IsDir() {
 			return nil
 		}

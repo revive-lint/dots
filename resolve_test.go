@@ -1,13 +1,15 @@
-package dots
+package dots_test
 
 import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/revive-lint/dots"
 )
 
 func TestResolveNoArgs(t *testing.T) {
-	result, err := Resolve([]string{}, []string{})
+	result, err := dots.Resolve([]string{}, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,7 +19,7 @@ func TestResolveNoArgs(t *testing.T) {
 }
 
 func TestResolve(t *testing.T) {
-	result, err := Resolve([]string{"fixtures/dummy/..."}, []string{"fixtures/dummy/foo", "fixtures/dummy/UNKNOWN"})
+	result, err := dots.Resolve([]string{"fixtures/dummy/..."}, []string{"fixtures/dummy/foo", "fixtures/dummy/UNKNOWN"})
 
 	files := []string{
 		filepath.FromSlash("fixtures/dummy/bar/bar1.go"),
@@ -45,7 +47,7 @@ func TestResolve(t *testing.T) {
 }
 
 func TestResolveTests(t *testing.T) {
-	result, err := Resolve([]string{"fixtures/withtests/..."}, []string{})
+	result, err := dots.Resolve([]string{"fixtures/withtests/..."}, []string{})
 
 	files := []string{
 		filepath.FromSlash("fixtures/withtests/gofile.go"),
@@ -71,7 +73,7 @@ func TestResolveTests(t *testing.T) {
 }
 
 func TestPackageResolve(t *testing.T) {
-	result, err := Resolve([]string{"github.com/revive-lint/dots"}, []string{"resolve_test.go"})
+	result, err := dots.Resolve([]string{"github.com/revive-lint/dots"}, []string{"resolve_test.go"})
 
 	files := []string{
 		"resolve.go",
@@ -95,7 +97,7 @@ func TestPackageResolve(t *testing.T) {
 }
 
 func TestSkipWildcard(t *testing.T) {
-	result, err := Resolve([]string{"fixtures/dummy/"}, []string{"fixtures/dummy/..."})
+	result, err := dots.Resolve([]string{"fixtures/dummy/"}, []string{"fixtures/dummy/..."})
 
 	files := map[string]bool{}
 
@@ -108,7 +110,7 @@ func TestSkipWildcard(t *testing.T) {
 }
 
 func TestPackageWildcard(t *testing.T) {
-	result, err := Resolve([]string{"github.com/revive-lint/dots/fixtures/pkg/foo/...", "github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{})
+	result, err := dots.Resolve([]string{"github.com/revive-lint/dots/fixtures/pkg/foo/...", "github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{})
 	files := []string{
 		"baz1.go",
 		"baz2.go",
@@ -132,7 +134,7 @@ func TestPackageWildcard(t *testing.T) {
 }
 
 func TestPackageWildcardWithSkip(t *testing.T) {
-	result, err := Resolve([]string{"github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{"github.com/revive-lint/dots/fixtures/pkg/foo/..."})
+	result, err := dots.Resolve([]string{"github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{"github.com/revive-lint/dots/fixtures/pkg/foo/..."})
 
 	files := []string{
 		"baz1.go",
@@ -157,7 +159,7 @@ func TestPackageWildcardWithSkip(t *testing.T) {
 }
 
 func TestComplainForMissingDirectories(t *testing.T) {
-	_, err := Resolve([]string{"./fixturess"}, []string{})
+	_, err := dots.Resolve([]string{"./fixturess"}, []string{})
 
 	if err == nil {
 		t.Error("Should get an error")
@@ -165,7 +167,7 @@ func TestComplainForMissingDirectories(t *testing.T) {
 }
 
 func TestComplainForMissingPackages(t *testing.T) {
-	_, err := Resolve([]string{"github.com/revive-lint/bazbaz"}, []string{})
+	_, err := dots.Resolve([]string{"github.com/revive-lint/bazbaz"}, []string{})
 
 	if err == nil {
 		t.Error("Should get an error")
@@ -173,7 +175,7 @@ func TestComplainForMissingPackages(t *testing.T) {
 }
 
 func TestResolvePackages(t *testing.T) {
-	result, err := ResolvePackages([]string{"github.com/revive-lint/dots/fixtures/pkg/foo/...", "github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{})
+	result, err := dots.ResolvePackages([]string{"github.com/revive-lint/dots/fixtures/pkg/foo/...", "github.com/revive-lint/dots/fixtures/pkg/baz"}, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
